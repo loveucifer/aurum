@@ -1,25 +1,17 @@
-CXX      = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra
-INCLUDES = -I/opt/homebrew/opt/glfw/include \
-           -I/opt/homebrew/opt/glm/include \
-           -I/opt/homebrew/opt/molten-vk/libexec/include
-LDFLAGS  = -L/opt/homebrew/opt/glfw/lib -lglfw \
-           -L/opt/homebrew/opt/molten-vk/lib -lMoltenVK \
-           -framework Cocoa -framework IOKit -framework CoreVideo
+SDL_INCLUDE = -I/opt/homebrew/include
+SDL_LIBS    = -L/opt/homebrew/lib -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
 
-TARGET = tiphereth
-
-.PHONY: all build run clean
-
-all: build
-
-build: $(TARGET)
-
-$(TARGET): main.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $< -o $@ $(LDFLAGS)
-
-run: build
-	./$(TARGET)
+build:
+	g++ -w -std=c++14 -Wfatal-errors $(SDL_INCLUDE) \
+	./src/*.cpp \
+	-o aurum \
+	-I"./lib/lua" \
+	-L"./lib/lua" \
+	-llua \
+	$(SDL_LIBS);
 
 clean:
-	rm -f $(TARGET)
+	rm ./aurum;
+
+run:
+	./aurum;
