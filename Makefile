@@ -5,10 +5,7 @@ build:
 	g++ -w -std=c++14 -Wfatal-errors $(SDL_INCLUDE) \
 	./src/*.cpp \
 	-o aurum \
-	-I"./lib/lua" \
-	-L"./lib/lua" \
-	-llua \
-	$(SDL_LIBS);
+	$(SDL_LIBS)
 
 clean:
 	rm ./aurum;
