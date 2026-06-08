@@ -2,7 +2,6 @@
 #include <iostream>
 #include "./Constants.h"
 #include "./Game.h"
-#include "../lib/glm/glm.hpp"
 #include "EntityManager.h"
 
 #include <SDL2/SDL_rect.h>
@@ -35,8 +34,6 @@ bool Game::IsRunning() const {
     return this->isRunning;
 }
 
-glm::vec2  ProjectilePosition = glm::vec2(0.0f,0.0f);
-glm::vec2  ProjectileVelocity = glm::vec2(20.0f,20.0f);
 
 void Game::Initialize(int width , int height ){
 
@@ -116,12 +113,8 @@ void Game::Update(){
     // sets the new ticks for the current frame which is to be used in the next pass
     ticksOfLastFrame = SDL_GetTicks();
 
-    // uses deltatime to update game objects
+    // call manager.update uypdate entities
 
-    ProjectilePosition = glm::vec2(
-        ProjectilePosition.x + ProjectileVelocity.x * deltaTime,
-        ProjectilePosition.y + ProjectileVelocity.y * deltaTime
-    );
 
 }
 
@@ -131,15 +124,8 @@ void Game::Render(){
     SDL_SetRenderDrawColor(renderer, 21, 21, 21 ,255);
     SDL_RenderClear(renderer);
 
-    SDL_Rect projectile {
-        (int)ProjectilePosition.x,
-        (int)ProjectilePosition.y,
-        10,
-        10
-    };
 
-    SDL_SetRenderDrawColor(renderer , 255 , 255 , 255, 255);
-    SDL_RenderFillRect(renderer, &projectile);
+
     SDL_RenderPresent(renderer);
 
 }

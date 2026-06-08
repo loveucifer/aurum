@@ -30,6 +30,8 @@ class TransformComponenet: public Component {
 
         void Update(float deltaTime) override {
             // update position.velocity of a function of deltatime
+            position.x += velocity.x * deltaTime;
+            position.y += velocity.y * deltaTime;
         }
 
         void Render() override {
