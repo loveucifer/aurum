@@ -2,7 +2,9 @@
 #include <iostream>
 #include "./Constants.h"
 #include "./Game.h"
+#include "Entity.h"
 #include "EntityManager.h"
+#include "../Components/TransformCoponent.h"
 
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_timer.h>
@@ -63,12 +65,22 @@ void Game::Initialize(int width , int height ){
         return;
     }
 
+    LoadLevel(0);
+
 
     isRunning = true;
     return;
 
 }
 
+
+void Game::LoadLevel(int levelNumber){
+
+    Entity& newEntity(manager.AddEntity("Player"));
+
+    newEntity.AddComponenet<TransformComponenet>(0,0,20,20,32,32,1);
+
+}
 
 void Game::ProcessInput(){
     SDL_Event event;
@@ -100,8 +112,6 @@ void Game::Update(){
     // while loops arent really good for doing this because its gonna consume lot of cpu power , this is gonna
     // burn a lot of compute we really dont want that so we should find another way
 
-
-
     // delta time is the differnece in ticks from last frame converted to seconds
     float deltaTime = (SDL_GetTicks() - ticksOfLastFrame) / 1000.0f;
 
@@ -113,7 +123,7 @@ void Game::Update(){
     // sets the new ticks for the current frame which is to be used in the next pass
     ticksOfLastFrame = SDL_GetTicks();
 
-    // call manager.update uypdate entities
+    manager.Update(deltaTime);
 
 
 }
@@ -123,6 +133,12 @@ void Game::Render(){
 
     SDL_SetRenderDrawColor(renderer, 21, 21, 21 ,255);
     SDL_RenderClear(renderer);
+
+    if (manager.HasNoEntities()){
+        return;
+    }
+
+    manager.Render();
 
 
 

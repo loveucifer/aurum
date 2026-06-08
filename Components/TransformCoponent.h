@@ -3,9 +3,9 @@
 
 #include "../src/EntityManager.h"
 #include "../lib/glm/glm.hpp"
-#include "SDL_rect.h"
-#include "SDL_render.h"
-#include "SDL_surface.h"
+#include "SDL2/SDL_rect.h"
+#include "SDL2/SDL_render.h"
+#include "SDL2/SDL_surface.h"
 #include "../src/Game.h"
 
 class TransformComponenet: public Component {

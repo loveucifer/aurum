@@ -23,6 +23,17 @@ class Entity{
         void Render();
         void Destroy();
         bool IsActive() const;
+
+
+        template <typename T, typename...TArgs>
+        T& AddComponenet(TArgs&&...args){
+            T* NewComponenet(new T(std::forward<TArgs>(args)...));
+            NewComponenet -> owner = this;
+            // this is the owner of that specific componenet whatever it may be
+            componenets.emplace_back(NewComponenet);
+            NewComponenet -> Initialize();
+            return *NewComponenet;
+        }
 };
 
 #endif
