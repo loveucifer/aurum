@@ -3,6 +3,7 @@
 #include "./Constants.h"
 #include "./Game.h"
 #include "../lib/glm/glm.hpp"
+#include "EntityManager.h"
 
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_timer.h>
@@ -11,6 +12,10 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+
+
+EntityManager manager;
+SDL_Renderer* Game::renderer;
 
 
 Game::Game(){
