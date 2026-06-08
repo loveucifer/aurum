@@ -4,6 +4,7 @@
 #include "./Game.h"
 
 #include <SDL2/SDL_rect.h>
+#include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL.h>
@@ -32,9 +33,8 @@ bool Game::IsRunning() const {
 
 float ProjectilePositionX = 0.0f;
 float ProjectilePositionY = 0.0f;
-float ProjectileVelocityX = 0.5f;
-float ProjectileVelocityY = 0.5f;
-
+float ProjectileVelocityX = 20.0f;
+float ProjectileVelocityY = 20.0f;
 
 
 void Game::Initialize(int width , int height ){
@@ -95,8 +95,28 @@ void Game::ProcessInput(){
 
 void Game::Update(){
 
-    ProjectilePositionX += ProjectileVelocityX;
-    ProjectilePositionY += ProjectileVelocityY;
+    // wait until 16ms has ellapsed since last frame
+
+    while (!SDL_TICKS_PASSED(SDL_GetTicks(), ticksOfLastFrame + FRAME_TARGET_TIME));
+
+    // while loops arent really good for doing this because its gonna consume lot of cpu power , this is gonna
+    // burn a lot of compute we really dont want that so we should find another way
+
+
+
+    // delta time is the differnece in ticks from last frame converted to seconds
+    float deltaTime = (SDL_GetTicks() - ticksOfLastFrame) / 1000.0f;
+
+    //clamp delta time
+
+    deltaTime = (deltaTime > 0.05f) ? 0.05f : deltaTime;
+
+
+    // sets the new ticks for the current frame which is to be used in the next pass
+    ticksOfLastFrame = SDL_GetTicks();
+
+    ProjectilePositionX += ProjectileVelocityX * deltaTime;
+    ProjectilePositionY += ProjectileVelocityY *deltaTime;
 
 }
 
