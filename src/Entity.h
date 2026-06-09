@@ -3,7 +3,9 @@
 
 #include "Component.h"
 #include <string>
+#include <typeinfo>
 #include <vector>
+#include<map>
 
 class Component;
 class EntityManager;
@@ -14,6 +16,7 @@ class Entity{
         EntityManager& manager;
         bool isActive;
         std::vector<Component*> componenets;
+        std::map<const std::type_info*, Component*> componenetTypeMap;
 
     public:
         std::string name;
@@ -31,8 +34,14 @@ class Entity{
             NewComponenet -> owner = this;
             // this is the owner of that specific componenet whatever it may be
             componenets.emplace_back(NewComponenet);
+            componenetTypeMap[&typeid(*NewComponenet)] = NewComponenet;
             NewComponenet -> Initialize();
             return *NewComponenet;
+        }
+        template<typename T>
+        T* GetComponenet(){
+            return static_cast<T*>(componenetTypeMap[&typeid(T)]);
+
         }
 };
 

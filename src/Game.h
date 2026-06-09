@@ -7,6 +7,8 @@
 #include <SDL2/SDL_ttf.h>
 
 
+class AssetManager;
+
 class Game {
     private:
         bool isRunning;
@@ -19,6 +21,7 @@ class Game {
         int ticksOfLastFrame;
         bool IsRunning() const;
         static SDL_Renderer *renderer;
+        static AssetManager* assetManager;
         void LoadLevel (int levelNumber);
         void Initialize(int width , int height);
         void ProcessInput();

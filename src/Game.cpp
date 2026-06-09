@@ -4,7 +4,9 @@
 #include "./Game.h"
 #include "Entity.h"
 #include "EntityManager.h"
-#include "../Components/TransformCoponent.h"
+#include "../Components/TransformComponent.h"
+#include "../Components/SpriteComponent.h"
+#include "AssetManager.h"
 
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_timer.h>
@@ -17,6 +19,7 @@
 
 EntityManager manager;
 SDL_Renderer* Game::renderer;
+AssetManager* Game::assetManager = new AssetManager(&manager);
 
 
 Game::Game(){
@@ -76,9 +79,19 @@ void Game::Initialize(int width , int height ){
 
 void Game::LoadLevel(int levelNumber){
 
-    Entity& newEntity(manager.AddEntity("Player"));
+    // start including assets here  assets/images/tank-big-right.png
+    std::string textureFilePath = "assets/images/tank-big-right.png";
+    assetManager->AddTexture("tank-image", textureFilePath.c_str());
+    //
+    //
+    // start including entites and also compomnenets to them
+
+    Entity& newEntity(manager.AddEntity("tank"));
 
     newEntity.AddComponenet<TransformComponenet>(0,0,20,20,32,32,1);
+
+
+    newEntity.AddComponenet<SpriteComponenet>("tank-image");
 
 }
 
