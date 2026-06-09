@@ -98,17 +98,17 @@ void Game::LoadLevel(int levelNumber){
 
     // start including entites and also compomnenets to them
 
-    Entity& chopperEntity(manager.AddEntity("chopper"));
+    Entity& chopperEntity(manager.AddEntity("chopper",PLAYER_LAYER));
     chopperEntity.AddComponenet<TransformComponenet>(240,106,0,0,32,32,1);
     chopperEntity.AddComponenet<SpriteComponenet>("chopper-image",2,40,true,false);
     chopperEntity.AddComponenet<KeyboardControlComponenet>("up","right", "down", "left", "space");
 
-    Entity& tankEntity(manager.AddEntity("tank"));
+    Entity& tankEntity(manager.AddEntity("tank",ENEMY_LAYER));
     tankEntity.AddComponenet<TransformComponenet>(0,0,20,20,32,32,1);
     tankEntity.AddComponenet<SpriteComponenet>("tank-image");
 
 
-    Entity& radarEntity(manager.AddEntity("radar"));
+    Entity& radarEntity(manager.AddEntity("radar",GUI_LAYER));
     radarEntity.AddComponenet<TransformComponenet>(720,0,0,0,64,64,1);
     radarEntity.AddComponenet<SpriteComponenet>("radar-image", 8, 150 , false, true);
 

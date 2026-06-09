@@ -1,10 +1,11 @@
+#include "Constants.h"
 #include "Entity.h"
 #include "Map.h"
 #include "EntityManager.h"
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include "../Components/TileComponenet.h"
+#include "../Components/TileComponent.h"
 
 extern EntityManager manager;
 
@@ -38,7 +39,7 @@ void Map::LoadMap(std::string filePath , int mapSizeX, int mapSizeY){
 }
 
 void Map::AddTile(int sourceRectangleX, int sourceRectangleY , int x , int y){
-    Entity& newTile(manager.AddEntity("Tile"));
+    Entity& newTile(manager.AddEntity("Tile", TILEMAP_LAYER));
     newTile.AddComponenet<TileComponenet>(sourceRectangleX, sourceRectangleY, x , y ,tileSize , scale , textureId);
 
 }
