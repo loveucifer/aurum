@@ -7,6 +7,8 @@
 #include "../Components/TransformComponent.h"
 #include "../Components/SpriteComponent.h"
 #include "AssetManager.h"
+#include "SDL2/SDL_events.h"
+#include "../Components/KeyboardControlComponenet.h"
 
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_timer.h>
@@ -20,6 +22,7 @@
 EntityManager manager;
 SDL_Renderer* Game::renderer;
 AssetManager* Game::assetManager = new AssetManager(&manager);
+SDL_Event Game::event;
 
 
 Game::Game(){
@@ -83,26 +86,30 @@ void Game::LoadLevel(int levelNumber){
 
     assetManager->AddTexture("tank-image",std::string("assets/images/tank-big-right.png").c_str());
     assetManager->AddTexture("chopper-image",std::string("assets/images/chopper-spritesheet.png").c_str());
-    //
-    //
+    assetManager->AddTexture("radar-image",std::string("assets/images/radar.png").c_str());
+
     // start including entites and also compomnenets to them
+
+    Entity& chopperEntity(manager.AddEntity("chopper"));
+    chopperEntity.AddComponenet<TransformComponenet>(240,106,0,0,32,32,1);
+    chopperEntity.AddComponenet<SpriteComponenet>("chopper-image",2,40,true,false);
+    chopperEntity.AddComponenet<KeyboardControlComponenet>("up","right", "down", "left", "space");
 
     Entity& tankEntity(manager.AddEntity("tank"));
     tankEntity.AddComponenet<TransformComponenet>(0,0,20,20,32,32,1);
     tankEntity.AddComponenet<SpriteComponenet>("tank-image");
 
 
-    Entity& chopperEntity(manager.AddEntity("chopper"));
-    chopperEntity.AddComponenet<TransformComponenet>(240,106,0,0,32,32,1);
-    chopperEntity.AddComponenet<SpriteComponenet>("chopper-image",2,40,true,false);
-
+    Entity& radarEntity(manager.AddEntity("radar"));
+    radarEntity.AddComponenet<TransformComponenet>(720,0,0,0,64,64,1);
+    radarEntity.AddComponenet<SpriteComponenet>("radar-image", 8, 150 , false, true);
 
 
 
 }
 
 void Game::ProcessInput(){
-    SDL_Event event;
+
     SDL_PollEvent(&event);
 
     switch (event.type){
