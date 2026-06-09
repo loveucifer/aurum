@@ -80,18 +80,24 @@ void Game::Initialize(int width , int height ){
 void Game::LoadLevel(int levelNumber){
 
     // start including assets here  assets/images/tank-big-right.png
-    std::string textureFilePath = "assets/images/tank-big-right.png";
-    assetManager->AddTexture("tank-image", textureFilePath.c_str());
+
+    assetManager->AddTexture("tank-image",std::string("assets/images/tank-big-right.png").c_str());
+    assetManager->AddTexture("chopper-image",std::string("assets/images/chopper-spritesheet.png").c_str());
     //
     //
     // start including entites and also compomnenets to them
 
-    Entity& newEntity(manager.AddEntity("tank"));
+    Entity& tankEntity(manager.AddEntity("tank"));
+    tankEntity.AddComponenet<TransformComponenet>(0,0,20,20,32,32,1);
+    tankEntity.AddComponenet<SpriteComponenet>("tank-image");
 
-    newEntity.AddComponenet<TransformComponenet>(0,0,20,20,32,32,1);
+
+    Entity& chopperEntity(manager.AddEntity("chopper"));
+    chopperEntity.AddComponenet<TransformComponenet>(240,106,0,0,32,32,1);
+    chopperEntity.AddComponenet<SpriteComponenet>("chopper-image",2,40,true,false);
 
 
-    newEntity.AddComponenet<SpriteComponenet>("tank-image");
+
 
 }
 
