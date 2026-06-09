@@ -40,7 +40,8 @@ class TileComponenet: public Component {
 
         void Update (float deltaTime) override {
 
-            // TODO tile positions based on the camera control that will be added
+            destinationRectangle.x = position.x - Game::camera.x;
+            destinationRectangle.y = position.y - Game::camera.y;
 
         }
 

@@ -24,6 +24,7 @@ EntityManager manager;
 SDL_Renderer* Game::renderer;
 AssetManager* Game::assetManager = new AssetManager(&manager);
 SDL_Event Game::event;
+SDL_Rect Game::camera = {0,0,WINDOW_WIDTH, WINDOW_HEIGHT};
 Map *map;
 
 
@@ -81,6 +82,7 @@ void Game::Initialize(int width , int height ){
 
 }
 
+ Entity& player(manager.AddEntity("chopper",PLAYER_LAYER));
 
 void Game::LoadLevel(int levelNumber){
 
@@ -98,13 +100,13 @@ void Game::LoadLevel(int levelNumber){
 
     // start including entites and also compomnenets to them
 
-    Entity& chopperEntity(manager.AddEntity("chopper",PLAYER_LAYER));
-    chopperEntity.AddComponenet<TransformComponenet>(240,106,0,0,32,32,1);
-    chopperEntity.AddComponenet<SpriteComponenet>("chopper-image",2,40,true,false);
-    chopperEntity.AddComponenet<KeyboardControlComponenet>("up","right", "down", "left", "space");
+
+    player.AddComponenet<TransformComponenet>(240,106,0,0,32,32,1);
+    player.AddComponenet<SpriteComponenet>("chopper-image",2,40,true,false);
+    player.AddComponenet<KeyboardControlComponenet>("up","right", "down", "left", "space");
 
     Entity& tankEntity(manager.AddEntity("tank",ENEMY_LAYER));
-    tankEntity.AddComponenet<TransformComponenet>(0,0,20,20,32,32,1);
+    tankEntity.AddComponenet<TransformComponenet>(150, 495, 5, 0, 32, 32, 1);
     tankEntity.AddComponenet<SpriteComponenet>("tank-image");
 
 
@@ -160,6 +162,8 @@ void Game::Update(){
 
     manager.Update(deltaTime);
 
+    HandleCameraMovement();
+
 
 }
 
@@ -178,6 +182,22 @@ void Game::Render(){
 
 
     SDL_RenderPresent(renderer);
+
+}
+
+void Game::HandleCameraMovement(){
+
+    TransformComponenet* mainPlayerTransform = player.GetComponenet<TransformComponenet>();
+    camera.x =  mainPlayerTransform -> position.x - static_cast<int>(WINDOW_WIDTH/2);
+    camera.y = mainPlayerTransform -> position.y - static_cast<int>(WINDOW_HEIGHT/2);
+
+
+
+    camera.x = camera.x < 0 ? 0: camera.x;
+    camera.y = camera.y < 0 ? 0: camera.y;
+    camera.x = camera.x > camera.w ? camera.w : camera.x;
+    camera.y = camera.y > camera.h ? camera.h : camera.y;
+
 
 }
 

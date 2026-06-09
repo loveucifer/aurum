@@ -95,8 +95,8 @@ class SpriteComponenet : public Component {
 
             sourceRectangle.y = animationIndex * Transform -> height;
 
-            destinationRectangle.x = static_cast<int>(Transform->position.x);
-            destinationRectangle.y = static_cast<int>(Transform->position.y);
+            destinationRectangle.x = static_cast<int>(Transform->position.x) - (isFixed?0 :Game::camera.x);
+            destinationRectangle.y = static_cast<int>(Transform->position.y) - (isFixed ?0 :Game::camera.y);
             destinationRectangle.w = Transform->width * Transform->scale;
             destinationRectangle.h = Transform->height* Transform->scale;
 
