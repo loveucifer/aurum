@@ -8,8 +8,9 @@
 #include "../Components/SpriteComponent.h"
 #include "AssetManager.h"
 #include "SDL2/SDL_events.h"
-#include "../Components/KeyboardControlComponenet.h"
+#include "../Components/KeyboardControlcomponent.h"
 #include "Map.h"
+#include "../Components/ColliderComponent.h"
 
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_timer.h>
@@ -101,18 +102,20 @@ void Game::LoadLevel(int levelNumber){
     // start including entites and also compomnenets to them
 
 
-    player.AddComponenet<TransformComponenet>(240,106,0,0,32,32,1);
-    player.AddComponenet<SpriteComponenet>("chopper-image",2,40,true,false);
-    player.AddComponenet<KeyboardControlComponenet>("up","right", "down", "left", "space");
+    player.Addcomponent<Transformcomponent>(240,106,0,0,32,32,1);
+    player.Addcomponent<Spritecomponent>("chopper-image",2,80,true,false);
+    player.Addcomponent<KeyboardControlcomponent>("up","right", "down", "left", "space");
+    player.Addcomponent<ColliderComponent>("player", 240,106,32,32);
 
     Entity& tankEntity(manager.AddEntity("tank",ENEMY_LAYER));
-    tankEntity.AddComponenet<TransformComponenet>(150, 495, 5, 0, 32, 32, 1);
-    tankEntity.AddComponenet<SpriteComponenet>("tank-image");
+    tankEntity.Addcomponent<Transformcomponent>(150, 495, 5, 0, 32, 32, 1);
+    tankEntity.Addcomponent<Spritecomponent>("tank-image");
+    tankEntity.Addcomponent<ColliderComponent>("enemy",150,495,32,32);
 
 
     Entity& radarEntity(manager.AddEntity("radar",GUI_LAYER));
-    radarEntity.AddComponenet<TransformComponenet>(720,0,0,0,64,64,1);
-    radarEntity.AddComponenet<SpriteComponenet>("radar-image", 8, 150 , false, true);
+    radarEntity.Addcomponent<Transformcomponent>(720,0,0,0,64,64,1);
+    radarEntity.Addcomponent<Spritecomponent>("radar-image", 8, 150 , false, true);
 
 
 
@@ -164,6 +167,8 @@ void Game::Update(){
 
     HandleCameraMovement();
 
+    CheckCollisions();
+
 
 }
 
@@ -187,7 +192,7 @@ void Game::Render(){
 
 void Game::HandleCameraMovement(){
 
-    TransformComponenet* mainPlayerTransform = player.GetComponenet<TransformComponenet>();
+    Transformcomponent* mainPlayerTransform = player.Getcomponent<Transformcomponent>();
     camera.x =  mainPlayerTransform -> position.x - static_cast<int>(WINDOW_WIDTH/2);
     camera.y = mainPlayerTransform -> position.y - static_cast<int>(WINDOW_HEIGHT/2);
 
@@ -197,6 +202,19 @@ void Game::HandleCameraMovement(){
     camera.y = camera.y < 0 ? 0: camera.y;
     camera.x = camera.x > camera.w ? camera.w : camera.x;
     camera.y = camera.y > camera.h ? camera.h : camera.y;
+
+
+}
+
+
+void Game::CheckCollisions(){
+
+    std::string collisionTagType = manager.CheckEntityCollisions(player);
+    if(collisionTagType.compare("enemy") == 0){
+
+        //TODO do something when collision is identified with an enemy
+        isRunning = false;
+    };
 
 
 }

@@ -1,5 +1,6 @@
 #include "Entity.h"
 #include "Constants.h"
+#include <iostream>
 
 
 Entity::Entity(EntityManager& manager): manager(manager) {
@@ -11,7 +12,7 @@ Entity::Entity(EntityManager& manager, std::string name,LayerType layer): manage
 }
 
 void Entity::Update(float deltaTime){
-    for (auto& component:componenets) {
+    for (auto& component:components) {
         component -> Update(deltaTime);
     }
 
@@ -19,11 +20,16 @@ void Entity::Update(float deltaTime){
 
 
 void Entity::Render(){
-    for (auto&component:componenets) {
+    for (auto&component:components) {
         component -> Render();
     }
 }
 
+void Entity::ListAllComponents() const {
+    for (auto mapElement: componentTypeMap) {
+        std::cout << "    Component<" << mapElement.first->name() << ">" << std::endl;
+    }
+}
 
 void Entity::Destroy(){
     this -> isActive = false;

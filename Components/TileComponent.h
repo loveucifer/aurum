@@ -1,5 +1,5 @@
-#ifndef TILECOMPONENET_H
-#define TILECOMPONENET_H
+#ifndef TILEcomponent_H
+#define TILEcomponent_H
 #include "SDL2/SDL.h"
 #include "../src/Component.h"
 #include "../src/TextureManager.h"
@@ -8,14 +8,14 @@
 #include "glm/glm.hpp"
 
 
-class TileComponenet: public Component {
+class Tilecomponent: public Component {
     public:
         SDL_Texture *texture;
         SDL_Rect sourceRectangle;
         SDL_Rect destinationRectangle;
         glm::vec2 position;
 
-        TileComponenet(int sourceRectX , int sourceRectY , int x , int y , int tileSize , int tileScale, std::string assetTextureId){
+        Tilecomponent(int sourceRectX , int sourceRectY , int x , int y , int tileSize , int tileScale, std::string assetTextureId){
             texture = Game::assetManager -> GetTexture(assetTextureId);
             sourceRectangle.x = sourceRectX;
             sourceRectangle.y = sourceRectY;
@@ -32,7 +32,7 @@ class TileComponenet: public Component {
 
         }
 
-        ~TileComponenet(){
+        ~Tilecomponent(){
 
             SDL_DestroyTexture(texture);
 

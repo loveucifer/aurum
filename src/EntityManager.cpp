@@ -2,7 +2,11 @@
 #include "Constants.h"
 #include "Entity.h"
 #include <vector>
-
+#include "Collision.h"
+#include "Component.h"
+#include <stdio.h>
+#include <iostream>
+#include "../Components/ColliderComponent.h"
 
 void EntityManager::ClearData() {
     for (auto& entity:entities) {
@@ -40,6 +44,38 @@ void EntityManager::Render(){
     }
 }
 
+void EntityManager::ListAllEntities() const {
+    unsigned int i = 0;
+    for (auto& entity: entities) {
+        std::cout << "Entity[" << i << "]: " << entity->name << std::endl;
+        entity->ListAllComponents();
+        i++;
+    }
+}
+
+std::string EntityManager::CheckEntityCollisions(Entity& myEntity) const {
+
+    ColliderComponent* myCollider = myEntity.Getcomponent<ColliderComponent>();
+    for (auto& entity:entities) {
+
+        if(entity->name.compare(myEntity.name) != 0 && entity->name.compare("Tile")!=0){
+
+        if (entity ->HasComponent<ColliderComponent>()) {
+
+            ColliderComponent* OtherCollider = entity->Getcomponent<ColliderComponent>();
+
+            if (Collision::CheckRectangleCollision(myCollider->collider, OtherCollider->collider)){
+
+                return OtherCollider->colliderTag;
+
+
+            }
+        }
+    }
+ }
+ return std::string();
+}
+
 Entity& EntityManager::AddEntity(std::string entityName , LayerType layer){
     Entity *entity = new Entity(*this,entityName, layer);
     entities.emplace_back(entity);
@@ -51,6 +87,6 @@ std::vector<Entity*> EntityManager::GetEntities() const {
 }
 
 
-unsigned int EntityManager::GetEntityCount(){
+unsigned int EntityManager::GetEntityCount  () const{
     return entities.size();
 }

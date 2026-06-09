@@ -16,8 +16,8 @@ class Entity{
     private:
         EntityManager& manager;
         bool isActive;
-        std::vector<Component*> componenets;
-        std::map<const std::type_info*, Component*> componenetTypeMap;
+        std::vector<Component*> components;
+        std::map<const std::type_info*, Component*> componentTypeMap;
 
     public:
         std::string name;
@@ -28,22 +28,29 @@ class Entity{
         void Render();
         void Destroy();
         bool IsActive() const;
+        void ListAllComponents() const;
 
 
         template <typename T, typename...TArgs>
-        T& AddComponenet(TArgs&&...args){
-            T* NewComponenet(new T(std::forward<TArgs>(args)...));
-            NewComponenet -> owner = this;
-            // this is the owner of that specific componenet whatever it may be
-            componenets.emplace_back(NewComponenet);
-            componenetTypeMap[&typeid(*NewComponenet)] = NewComponenet;
-            NewComponenet -> Initialize();
-            return *NewComponenet;
+        T& Addcomponent(TArgs&&...args){
+            T* Newcomponent(new T(std::forward<TArgs>(args)...));
+            Newcomponent -> owner = this;
+            // this is the owner of that specific component whatever it may be
+            components.emplace_back(Newcomponent);
+            componentTypeMap[&typeid(*Newcomponent)] = Newcomponent;
+            Newcomponent -> Initialize();
+            return *Newcomponent;
         }
-        template<typename T>
-        T* GetComponenet(){
-            return static_cast<T*>(componenetTypeMap[&typeid(T)]);
 
+        template<typename T>
+        T* Getcomponent(){
+            return static_cast<T*>(componentTypeMap[&typeid(T)]);
+
+        }
+
+        template<typename T>
+        bool HasComponent() const {
+            return componentTypeMap.count(&typeid(T));
         }
 };
 

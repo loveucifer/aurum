@@ -11,10 +11,10 @@
 #include "../src/Animation.h"
 
 
-class SpriteComponenet : public Component {
+class Spritecomponent : public Component {
 
     private:
-        TransformComponenet* Transform;
+        Transformcomponent* Transform;
         SDL_Texture* texture;
         SDL_Rect sourceRectangle;
         SDL_Rect destinationRectangle;
@@ -30,14 +30,14 @@ class SpriteComponenet : public Component {
     public:
         SDL_RendererFlip spriteFlip = SDL_FLIP_NONE;
 
-        SpriteComponenet(std::string assetTextureId){
+        Spritecomponent(std::string assetTextureId){
             isAnimated = false;
             isFixed = false;
             SetTexture(assetTextureId);
 
         }
 
-        SpriteComponenet(std::string id, int numFrames, int animationSpeed, bool hasDirections, bool isFixed ){
+        Spritecomponent(std::string id, int numFrames, int animationSpeed, bool hasDirections, bool isFixed ){
             this -> isAnimated = true;
             this -> numFrames = numFrames;
             this -> animationSpeed = animationSpeed;
@@ -80,7 +80,7 @@ class SpriteComponenet : public Component {
         }
 
         void Initialize() override {
-            Transform = owner->GetComponenet<TransformComponenet>();
+            Transform = owner->Getcomponent<Transformcomponent>();
             sourceRectangle.x = 0;
             sourceRectangle.y = 0;
             sourceRectangle.w = Transform->width;
