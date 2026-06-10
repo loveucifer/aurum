@@ -3,3 +3,4 @@ lib/
 .clangd
 .DS_Store
 aurum
+docs/

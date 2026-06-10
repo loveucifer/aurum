@@ -7,6 +7,7 @@
 #include <typeinfo>
 #include <vector>
 #include<map>
+#include <memory>
 
 class Component;
 class EntityManager;
@@ -16,7 +17,8 @@ class Entity{
     private:
         EntityManager& manager;
         bool isActive;
-        std::vector<Component*> components;
+        //std::vector<Component*> components;
+        std::vector<std::unique_ptr<Component>> components;
         std::map<const std::type_info*, Component*> componentTypeMap;
 
     public:
@@ -33,13 +35,13 @@ class Entity{
 
         template <typename T, typename...TArgs>
         T& AddComponent(TArgs&&...args){
-            T* Newcomponent(new T(std::forward<TArgs>(args)...));
-            Newcomponent -> owner = this;
-            // this is the owner of that specific component whatever it may be
-            components.emplace_back(Newcomponent);
-            componentTypeMap[&typeid(*Newcomponent)] = Newcomponent;
-            Newcomponent -> Initialize();
-            return *Newcomponent;
+        auto Newcomponent = std::make_unique<T>(std::forward<TArgs>(args)...);
+        T* rawPtr = Newcomponent.get();
+        rawPtr->owner = this;
+        componentTypeMap[&typeid(*rawPtr)] = rawPtr;
+        components.emplace_back(std::move(Newcomponent));
+        rawPtr->Initialize();
+        return *rawPtr;
         }
 
         template<typename T>
