@@ -12,7 +12,7 @@ class ColliderComponent: public Component {
         SDL_Rect collider;
         SDL_Rect sourceRectangle;
         SDL_Rect destinationRectangle;
-        Transformcomponent* transform;
+        TransformComponent* transform;
 
         ColliderComponent(std::string colliderTag , int x , int y , int width , int height){
             this -> colliderTag = colliderTag;
@@ -20,8 +20,8 @@ class ColliderComponent: public Component {
         }
 
         void Initialize() override {
-            if (owner -> HasComponent<Transformcomponent>()){
-                transform = owner -> Getcomponent<Transformcomponent>();
+            if (owner -> HasComponent<TransformComponent>()){
+                transform = owner -> GetComponent<TransformComponent>();
                 sourceRectangle = {0,0, transform->width , transform->height};
                 destinationRectangle = {collider.x , collider.y , collider.w , collider.h};
             }

@@ -32,7 +32,7 @@ class Entity{
 
 
         template <typename T, typename...TArgs>
-        T& Addcomponent(TArgs&&...args){
+        T& AddComponent(TArgs&&...args){
             T* Newcomponent(new T(std::forward<TArgs>(args)...));
             Newcomponent -> owner = this;
             // this is the owner of that specific component whatever it may be
@@ -43,7 +43,7 @@ class Entity{
         }
 
         template<typename T>
-        T* Getcomponent(){
+        T* GetComponent(){
             return static_cast<T*>(componentTypeMap[&typeid(T)]);
 
         }

@@ -8,7 +8,7 @@
 #include "SDL2/SDL_surface.h"
 #include "../src/Game.h"
 
-class Transformcomponent: public Component {
+class TransformComponent: public Component {
     public:
         glm::vec2 position;
         glm::vec2 velocity;
@@ -16,7 +16,7 @@ class Transformcomponent: public Component {
         int height;
         int scale;
 
-        Transformcomponent(int posX , int posY , int velX , int velY , int w , int h , int s){
+        TransformComponent(int posX , int posY , int velX , int velY , int w , int h , int s){
             position = glm::vec2(posX, posY);
             velocity = glm::vec2(velX, velY);
             width = w;

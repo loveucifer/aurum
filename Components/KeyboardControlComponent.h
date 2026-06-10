@@ -8,21 +8,21 @@
 #include "SpriteComponent.h"
 #include <string>
 
-class KeyboardControlcomponent: public Component {
+class KeyboardControlComponent: public Component {
     public:
         std::string upKey;
         std::string downKey;
         std::string rightKey;
         std::string leftKey;
         std::string shootKey;
-        Transformcomponent *transform;
-        Spritecomponent *sprite;
+        TransformComponent *transform;
+        SpriteComponent *sprite;
 
-        KeyboardControlcomponent(){
+        KeyboardControlComponent(){
 
         }
 
-        KeyboardControlcomponent(std::string upKey, std::string rightKey , std::string downKey , std::string leftKey , std::string shootKey){
+        KeyboardControlComponent(std::string upKey, std::string rightKey , std::string downKey , std::string leftKey , std::string shootKey){
             this -> upKey    = GetSDLKeyStringCode(upKey);
             this -> downKey  = GetSDLKeyStringCode(downKey);
             this -> rightKey = GetSDLKeyStringCode(rightKey);
@@ -42,8 +42,8 @@ class KeyboardControlcomponent: public Component {
         }
 
         void Initialize() override {
-            transform = owner -> Getcomponent<Transformcomponent>();
-            sprite = owner -> Getcomponent<Spritecomponent>();
+            transform = owner -> GetComponent<TransformComponent>();
+            sprite = owner -> GetComponent<SpriteComponent>();
         }
 
         void Update(float deltaTime) override {

@@ -29,6 +29,8 @@ class Game {
         void ProcessInput();
         void Update();
         void Render();
+        void ProcessNextLevel(int levelNumber);
+        void ProcessGameOver();
         void HandleCameraMovement();
         void CheckCollisions();
         void Destroy();
