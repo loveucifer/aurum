@@ -12,7 +12,17 @@ void EntityManager::ClearData() {
     for (auto& entity:entities) {
         entity ->Destroy();
     }
+    DestroyInactiveEntities();
 }
+
+void EntityManager::DestroyInactiveEntities() {
+    for (int i = 0; i < entities.size(); i++) {
+        if (!entities[i]->IsActive()) {
+            entities.erase(entities.begin() + i);
+        }
+    }
+}
+
 
 bool EntityManager::HasNoEntities(){
     return entities.size() == 0;
