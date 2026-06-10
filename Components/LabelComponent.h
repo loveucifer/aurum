@@ -10,13 +10,12 @@
 
 
 class LabelComponent: public Component {
-    private:
+    public:
         SDL_Rect position;
         std::string text;
         std::string fontFamily;
         SDL_Color color;
         SDL_Texture* texture;
-    public:
         LabelComponent(int x , int y , std::string text, std::string fontFamily , const SDL_Color color){
             this -> position.x = x;
             this -> position.y = y;

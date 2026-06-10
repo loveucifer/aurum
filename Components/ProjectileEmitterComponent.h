@@ -6,15 +6,13 @@
 #include "../Components/TransformComponent.h"
 
 class ProjectileEmitterComponent : public Component {
-private:
+public:
     TransformComponent* transform;
     glm::vec2 origin;
     int speed;
     int range;
     float angleRadians;
     bool shouldLoop;
-
-public:
     ProjectileEmitterComponent(int speed, int angleDegrees , int range, bool shouldLoop){
         this ->speed = speed;
         this -> range = range;

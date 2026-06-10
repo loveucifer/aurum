@@ -15,6 +15,7 @@ class Game {
     private:
         bool isRunning;
         SDL_Window *window;
+        SDL_Texture *viewportTexture;
 
 
     public:
@@ -41,5 +42,6 @@ class Game {
 
 };
 
+extern Game* gameInstance;
 
 #endif

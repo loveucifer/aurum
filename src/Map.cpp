@@ -21,15 +21,19 @@ void Map::LoadMap(std::string filePath , int mapSizeX, int mapSizeY){
 
     std::fstream mapFile;
     mapFile.open(filePath);
+    if (!mapFile.is_open()) {
+        std::cerr << "[Map] Error: Failed to open map file: " << filePath << std::endl;
+        return;
+    }
 
     for (int y = 0 ; y < mapSizeY ; y++){
         for (int x = 0; x < mapSizeX; x++) {
 
             char ch;
             mapFile.get(ch);
-            int sourceRectangleY = atoi(&ch) * tileSize;
+            int sourceRectangleY = (ch - '0') * tileSize;
             mapFile.get(ch);
-            int sourceRectangleX = atoi(&ch) * tileSize;
+            int sourceRectangleX = (ch - '0') * tileSize;
             AddTile(sourceRectangleX, sourceRectangleY, x * (scale * tileSize), y * (scale * tileSize));
             mapFile.ignore(); // ignore the commas
 

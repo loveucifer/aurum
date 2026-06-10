@@ -25,6 +25,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdlrenderer2.h"
+#include "EditorStyle.h"
+#include "EditorPanels.h"
 
 
 EntityManager manager;
@@ -36,10 +41,12 @@ SDL_Rect Game::camera = {0,0,WINDOW_WIDTH, WINDOW_HEIGHT};
 FileWatcher* Game::fileWatcher = new FileWatcher();
 Map* map;
 Entity* player = nullptr;
+Game* gameInstance = nullptr;
 
 
 Game::Game(){
     this -> isRunning = false;
+    gameInstance = this;
 }
 
 
@@ -76,7 +83,7 @@ void Game::Initialize(int width , int height ){
         SDL_WINDOWPOS_CENTERED,
         width,
         height,
-        0);
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
 
     if (!window){
         std::cerr << "Error creating SDL window" << std::endl;
@@ -84,11 +91,50 @@ void Game::Initialize(int width , int height ){
     }
 
 
-    // -1 means get default driver
-    renderer = SDL_CreateRenderer(window, -1, 0);
-    if (!renderer ) {
-        std::cerr << "Error creating SDL renderer" << std::endl;
+    // Try creating hardware accelerated renderer with target texture support first
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+    if (!renderer) {
+        std::cerr << "Accelerated target texture renderer creation failed: " << SDL_GetError() << ". Retrying default..." << std::endl;
+        renderer = SDL_CreateRenderer(window, -1, 0);
+    }
+    if (!renderer) {
+        std::cerr << "Error creating SDL renderer: " << SDL_GetError() << std::endl;
         return;
+    }
+
+    // ImGui init
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;  // enable docking
+
+    ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+    ImGui_ImplSDLRenderer2_Init(renderer);
+
+    // Apply retro style
+    ApplyRetroStyle();
+
+    // Load classic Windows Arial font
+    ImFontConfig fontConfig;
+    fontConfig.OversampleH = 1;
+    fontConfig.OversampleV = 1;
+    fontConfig.PixelSnapH = true;
+    ImFont* retroFont = io.Fonts->AddFontFromFileTTF("assets/fonts/arial.ttf", 13.0f, &fontConfig);
+    if (retroFont) {
+        io.FontDefault = retroFont;
+    } else {
+        io.Fonts->AddFontDefault();
+    }
+
+    // Create viewport texture
+    viewportTexture = SDL_CreateTexture(
+        renderer,
+        SDL_PIXELFORMAT_RGBA8888,
+        SDL_TEXTUREACCESS_TARGET,
+        WINDOW_WIDTH, WINDOW_HEIGHT
+    );
+    if (!viewportTexture) {
+        std::cerr << "Warning: Failed to create offscreen viewport texture target: " << SDL_GetError() << std::endl;
     }
 
     LoadLevel(0);
@@ -127,6 +173,7 @@ void Game::LoadLevel(int levelNumber) {
     // -------------------------------------------------------
     // Load assets defined in Level1.assets
     // -------------------------------------------------------
+    assetManager->ClearData();
     sol::table assetsTable = level["assets"];
     if (!assetsTable.valid()) {
         std::cerr << "[Game] Warning: Level1.assets table missing" << std::endl;
@@ -156,6 +203,10 @@ void Game::LoadLevel(int levelNumber) {
     if (!mapConfig.valid()) {
         std::cerr << "[Game] Warning: Level1.map table missing" << std::endl;
     } else {
+        if (map) {
+            delete map;
+            map = nullptr;
+        }
         std::string texId   = mapConfig.get_or<std::string>("textureAssetId", "");
         std::string mapFile = mapConfig.get_or<std::string>("file",           "");
         int scale    = mapConfig.get_or("scale",    1);
@@ -171,42 +222,173 @@ void Game::LoadLevel(int levelNumber) {
     }
 
     // -------------------------------------------------------
-    // Create entities (asset IDs match what Level1.assets defines)
+    // Create entities dynamically from Level1.entities
     // -------------------------------------------------------
-    player = &manager.AddEntity("chopper", PLAYER_LAYER);
-    player->AddComponent<TransformComponent>(240, 106, 0, 0, 32, 32, 1);
-    player->AddComponent<SpriteComponent>("chopper-texture", 2, 90, true, false);
-    player->AddComponent<KeyboardControlComponent>("up", "right", "down", "left", "space");
-    player->AddComponent<ColliderComponent>("PLAYER", 240, 106, 32, 32);
+    manager.ClearData();
+    sol::table entitiesTable = level["entities"];
+    if (!entitiesTable.valid()) {
+        std::cerr << "[Game] Warning: Level1.entities table missing" << std::endl;
+    } else {
+        entitiesTable.for_each([&](sol::object key, sol::object val) {
+            if (val.get_type() != sol::type::table) return;
+            sol::table ent = val.as<sol::table>();
+            
+            std::string name = ent.get_or<std::string>("name", "unnamed");
+            int layerInt = ent.get_or("layer", 0);
+            LayerType layer = static_cast<LayerType>(layerInt);
+            
+            Entity& entity = manager.AddEntity(name, layer);
+            
+            sol::optional<sol::table> componentsOpt = ent["components"];
+            if (componentsOpt && componentsOpt->valid()) {
+                sol::table components = *componentsOpt;
 
-    Entity& tankEntity = manager.AddEntity("tank", ENEMY_LAYER);
-    tankEntity.AddComponent<TransformComponent>(150, 495, 5, 0, 32, 32, 1);
-    tankEntity.AddComponent<SpriteComponent>("tank-big-right-texture");
-    tankEntity.AddComponent<ColliderComponent>("ENEMY", 150, 495, 32, 32);
-    tankEntity.AddComponent<ScriptComponent>("assets/scripts/enemy_patrol.lua");
-
-    Entity& projectile = manager.AddEntity("projectile", PROJECTILE_LAYER);
-    projectile.AddComponent<TransformComponent>(150 + 16, 495 + 16, 0, 0, 4, 4, 1);
-    projectile.AddComponent<SpriteComponent>("projectile-texture");
-    projectile.AddComponent<ColliderComponent>("PROJECTILE", 150 + 16, 495 + 16, 4, 4);
-    projectile.AddComponent<ProjectileEmitterComponent>(50, 270, 200, true);
-
-    Entity& heliport = manager.AddEntity("Heliport", OBSTACLE_LAYER);
-    heliport.AddComponent<TransformComponent>(470, 420, 0, 0, 32, 32, 1);
-    heliport.AddComponent<SpriteComponent>("heliport-texture");
-    heliport.AddComponent<ColliderComponent>("LEVEL_COMPLETE", 470, 420, 32, 32);
-
-    Entity& radarEntity = manager.AddEntity("radar", GUI_LAYER);
-    radarEntity.AddComponent<TransformComponent>(720, 0, 0, 0, 64, 64, 1);
-    radarEntity.AddComponent<SpriteComponent>("radar-texture", 8, 150, false, true);
-
-    Entity& labelLevelName = manager.AddEntity("LabelLevelName", GUI_LAYER);
-    labelLevelName.AddComponent<LabelComponent>(10, 10, "First Level...", "charriot-font", WHITE_COLOR);
+                // 1. TransformComponent
+                sol::optional<sol::table> transformOpt = components["transform"];
+                if (transformOpt && transformOpt->valid()) {
+                    sol::table transform = *transformOpt;
+                    sol::optional<sol::table> posTable = transform["position"];
+                    sol::optional<sol::table> velTable = transform["velocity"];
+                    int px = (posTable && posTable->valid()) ? posTable->get_or("x", 0) : 0;
+                    int py = (posTable && posTable->valid()) ? posTable->get_or("y", 0) : 0;
+                    int vx = (velTable && velTable->valid()) ? velTable->get_or("x", 0) : 0;
+                    int vy = (velTable && velTable->valid()) ? velTable->get_or("y", 0) : 0;
+                    int w = transform.get_or("width", 32);
+                    int h = transform.get_or("height", 32);
+                    int s = transform.get_or("scale", 1);
+                    entity.AddComponent<TransformComponent>(px, py, vx, vy, w, h, s);
+                }
+                
+                // 2. SpriteComponent
+                sol::optional<sol::table> spriteOpt = components["sprite"];
+                if (spriteOpt && spriteOpt->valid()) {
+                    sol::table sprite = *spriteOpt;
+                    std::string texAssetId = sprite.get_or<std::string>("textureAssetId", "");
+                    bool animated = sprite.get_or("animated", false);
+                    if (animated) {
+                        int frameCount = sprite.get_or("frameCount", 1);
+                        int speed = sprite.get_or("animationSpeed", 100);
+                        bool hasDirections = sprite.get_or("hasDirections", false);
+                        bool fixed = sprite.get_or("fixed", false);
+                        entity.AddComponent<SpriteComponent>(texAssetId, frameCount, speed, hasDirections, fixed);
+                    } else {
+                        entity.AddComponent<SpriteComponent>(texAssetId);
+                    }
+                }
+                
+                // 3. ColliderComponent
+                sol::optional<sol::table> colliderOpt = components["collider"];
+                if (colliderOpt && colliderOpt->valid()) {
+                    sol::table collider = *colliderOpt;
+                    std::string tag = collider.get_or<std::string>("tag", "UNKNOWN");
+                    int cx = 0, cy = 0, cw = 32, ch = 32;
+                    if (entity.HasComponent<TransformComponent>()) {
+                        auto* trans = entity.GetComponent<TransformComponent>();
+                        cx = static_cast<int>(trans->position.x);
+                        cy = static_cast<int>(trans->position.y);
+                        cw = trans->width * trans->scale;
+                        ch = trans->height * trans->scale;
+                    }
+                    entity.AddComponent<ColliderComponent>(tag, cx, cy, cw, ch);
+                }
+                
+                // 4. KeyboardControlComponent
+                sol::optional<sol::table> inputOpt = components["input"];
+                if (inputOpt && inputOpt->valid()) {
+                    sol::table input = *inputOpt;
+                    sol::optional<sol::table> kbOpt = input["keyboard"];
+                    if (kbOpt && kbOpt->valid()) {
+                        sol::table kb = *kbOpt;
+                        std::string up = kb.get_or<std::string>("up", "w");
+                        std::string right = kb.get_or<std::string>("right", "d");
+                        std::string down = kb.get_or<std::string>("down", "s");
+                        std::string left = kb.get_or<std::string>("left", "a");
+                        std::string shoot = kb.get_or<std::string>("shoot", "space");
+                        entity.AddComponent<KeyboardControlComponent>(up, right, down, left, shoot);
+                    }
+                }
+                
+                // 5. ProjectileEmitterComponent (spawns separate projectile entity)
+                sol::optional<sol::table> projEmitOpt = components["projectileEmitter"];
+                if (projEmitOpt && projEmitOpt->valid()) {
+                    sol::table projEmit = *projEmitOpt;
+                    int speed = projEmit.get_or("speed", 100);
+                    int angle = projEmit.get_or("angle", 0);
+                    int range = projEmit.get_or("range", 200);
+                    bool shouldLoop = projEmit.get_or("shouldLoop", true);
+                    std::string projTexId = projEmit.get_or<std::string>("textureAssetId", "projectile-texture");
+                    int pw = projEmit.get_or("width", 4);
+                    int ph = projEmit.get_or("height", 4);
+                    
+                    int startX = 0;
+                    int startY = 0;
+                    if (entity.HasComponent<TransformComponent>()) {
+                        auto* trans = entity.GetComponent<TransformComponent>();
+                        startX = static_cast<int>(trans->position.x) + (trans->width * trans->scale) / 2 - pw / 2;
+                        startY = static_cast<int>(trans->position.y) + (trans->height * trans->scale) / 2 - ph / 2;
+                    }
+                    
+                    std::string projName = name + "_projectile";
+                    Entity& projectile = manager.AddEntity(projName, PROJECTILE_LAYER);
+                    projectile.AddComponent<TransformComponent>(startX, startY, 0, 0, pw, ph, 1);
+                    projectile.AddComponent<SpriteComponent>(projTexId);
+                    projectile.AddComponent<ColliderComponent>("PROJECTILE", startX, startY, pw, ph);
+                    projectile.AddComponent<ProjectileEmitterComponent>(speed, angle, range, shouldLoop);
+                }
+                
+                // 6. ScriptComponent
+                sol::optional<sol::table> scriptOpt = components["script"];
+                if (scriptOpt && scriptOpt->valid()) {
+                    sol::table script = *scriptOpt;
+                    std::string path = script.get_or<std::string>("path", "");
+                    if (!path.empty()) {
+                        entity.AddComponent<ScriptComponent>(path);
+                    }
+                }
+                
+                // 7. LabelComponent
+                sol::optional<sol::table> labelOpt = components["label"];
+                if (labelOpt && labelOpt->valid()) {
+                    sol::table label = *labelOpt;
+                    std::string text = label.get_or<std::string>("text", "");
+                    std::string fontFamily = label.get_or<std::string>("fontFamily", "charriot-font");
+                    sol::optional<sol::table> colorTable = label["color"];
+                    SDL_Color color = { 255, 255, 255, 255 };
+                    if (colorTable && colorTable->valid()) {
+                        color.r = colorTable->get_or("r", 255);
+                        color.g = colorTable->get_or("g", 255);
+                        color.b = colorTable->get_or("b", 255);
+                        color.a = colorTable->get_or("a", 255);
+                    }
+                    int lx = 0, ly = 0;
+                    if (entity.HasComponent<TransformComponent>()) {
+                        auto* trans = entity.GetComponent<TransformComponent>();
+                        lx = static_cast<int>(trans->position.x);
+                        ly = static_cast<int>(trans->position.y);
+                    }
+                    entity.AddComponent<LabelComponent>(lx, ly, text, fontFamily, color);
+                }
+            }
+            
+            if (name == "player") {
+                player = &entity;
+            }
+        });
+    }
 }
 
 void Game::ProcessInput(){
 
     SDL_PollEvent(&event);
+    ImGui_ImplSDL2_ProcessEvent(&event);
+
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureKeyboard || io.WantCaptureMouse) {
+        if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
+            isRunning = false;
+        }
+        return;
+    }
 
     switch (event.type){
         case SDL_QUIT: {
@@ -252,11 +434,11 @@ void Game::Update(){
 
     fileWatcher->Update(deltaTime);
 
-    manager.Update(deltaTime);
-
-    HandleCameraMovement();
-
-    CheckCollisions();
+    if (GetIsPlaying()) {
+        manager.Update(deltaTime);
+        HandleCameraMovement();
+        CheckCollisions();
+    }
 
 
 }
@@ -264,16 +446,34 @@ void Game::Update(){
 
 void Game::Render(){
 
-    SDL_SetRenderDrawColor(renderer, 21, 21, 21 ,255);
+    // 1. Render game world to viewport texture target
+    if (viewportTexture) {
+        SDL_SetRenderTarget(renderer, viewportTexture);
+    }
+    SDL_SetRenderDrawColor(renderer, 21, 21, 21, 255);
     SDL_RenderClear(renderer);
 
-    if (manager.HasNoEntities()){
-        return;
+    if (!manager.HasNoEntities()) {
+        manager.Render();
     }
 
-    manager.Render();
+    if (viewportTexture) {
+        SDL_SetRenderTarget(renderer, NULL); // Restore default render target
+    }
 
+    // 2. Render default background for main window
+    SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255); // Win95 light gray
+    SDL_RenderClear(renderer);
 
+    // 3. Render ImGui UI
+    ImGui_ImplSDLRenderer2_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
+    DrawEditorUI(viewportTexture);
+
+    ImGui::Render();
+    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
 
     SDL_RenderPresent(renderer);
 
@@ -301,30 +501,34 @@ void Game::HandleCameraMovement(){
 void Game::CheckCollisions() {
     CollisionType collisionType = manager.CheckCollisions();
     if (collisionType == PLAYER_ENEMY_COLLISION) {
-        ProcessGameOver();
+        // ProcessGameOver();
     }
     if (collisionType == PLAYER_PROJECTILE_COLLISION) {
-
-        ProcessGameOver();
-
+        // ProcessGameOver();
     }
     if (collisionType == PLAYER_LEVEL_COMPLETE_COLLISION) {
-        ProcessNextLevel(1);
+        // ProcessNextLevel(1);
     }
 }
 
 void Game::ProcessNextLevel(int levelNumber) {
-    std::cout << "Next Level" << std::endl;
-    isRunning = false;
+    std::cout << "Next Level Triggered" << std::endl;
+    // isRunning = false;
 }
 
 void Game::ProcessGameOver() {
-    std::cout << "Game Over" << std::endl;
-    isRunning = false;
+    std::cout << "Game Over Triggered" << std::endl;
+    // isRunning = false;
 }
 
 
 void Game::Destroy(){
+    SDL_DestroyTexture(viewportTexture);
+
+    ImGui_ImplSDLRenderer2_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

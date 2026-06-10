@@ -13,7 +13,7 @@
 
 class SpriteComponent : public Component {
 
-    private:
+    public:
         TransformComponent* Transform;
         SDL_Texture* texture;
         SDL_Rect sourceRectangle;

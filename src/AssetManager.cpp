@@ -15,17 +15,41 @@ AssetManager::~AssetManager() {
 }
 
 void AssetManager::ClearData(){
+    for (auto& pair : textures) {
+        if (pair.second) {
+            SDL_DestroyTexture(pair.second);
+        }
+    }
     textures.clear();
+
+    for (auto& pair : fonts) {
+        if (pair.second) {
+            TTF_CloseFont(pair.second);
+        }
+    }
     fonts.clear();
 }
 
 void AssetManager::AddTexture(std::string textureId, const char* fileName){
-    textures.emplace(textureId,TextureManager::LoadTexture(fileName));
+    auto it = textures.find(textureId);
+    if (it != textures.end()) {
+        if (it->second) {
+            SDL_DestroyTexture(it->second);
+        }
+        textures.erase(it);
+    }
+    textures.emplace(textureId, TextureManager::LoadTexture(fileName));
 }
 
 void AssetManager::AddFont(std::string fontId, const char* filePath, int fontSize){
-
-    fonts.emplace(fontId,FontManager::LoadFont(filePath, fontSize));
+    auto it = fonts.find(fontId);
+    if (it != fonts.end()) {
+        if (it->second) {
+            TTF_CloseFont(it->second);
+        }
+        fonts.erase(it);
+    }
+    fonts.emplace(fontId, FontManager::LoadFont(filePath, fontSize));
 }
 
 TTF_Font* AssetManager::GetFont(std::string fontId){
