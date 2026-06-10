@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <iostream>
+#include <string>
 #include "./Constants.h"
 #include "./Game.h"
 #include "Entity.h"
@@ -13,7 +14,10 @@
 #include "../Components/ColliderComponent.h"
 #include "../Components/LabelComponent.h"
 #include "../Components/ProjectileEmitterComponent.h"
-
+#include "../Components/ScriptComponent.h"
+#include "ScriptManager.h"
+#include "LuaBindings.h"
+#include "../lib/lua/sol/sol.hpp"
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_render.h>
@@ -26,9 +30,12 @@
 EntityManager manager;
 SDL_Renderer* Game::renderer;
 AssetManager* Game::assetManager = new AssetManager(&manager);
+ScriptManager* Game::scriptManager = new ScriptManager();
 SDL_Event Game::event;
 SDL_Rect Game::camera = {0,0,WINDOW_WIDTH, WINDOW_HEIGHT};
-Map *map;
+FileWatcher* Game::fileWatcher = new FileWatcher();
+Map* map;
+Entity* player = nullptr;
 
 
 Game::Game(){
@@ -92,59 +99,109 @@ void Game::Initialize(int width , int height ){
 
 }
 
- Entity& player(manager.AddEntity("chopper",PLAYER_LAYER));
+void Game::LoadLevel(int levelNumber) {
 
-void Game::LoadLevel(int levelNumber){
-
-    // start including assets here  assets/images/tank-big-right.png
-
-    assetManager->AddTexture("tank-image",std::string("assets/images/tank-big-right.png").c_str());
-    assetManager->AddTexture("chopper-image",std::string("assets/images/chopper-spritesheet.png").c_str());
-    assetManager->AddTexture("radar-image",std::string("assets/images/radar.png").c_str());
-    assetManager->AddTexture("jungle-tiletexture",std::string("assets/tilemaps/jungle.png").c_str());
-    assetManager->AddTexture("heliport-image", std::string("./assets/images/heliport.png").c_str());
-    assetManager ->AddFont("charriot-font", std::string("assets/fonts/charriot.ttf").c_str(), 14);
-  assetManager->AddTexture("projectile-image", std::string("./assets/images/bullet-enemy.png").c_str());
-
-    map = new Map("jungle-tiletexture",1,32);
-    map ->LoadMap("assets/tilemaps/jungle.map", 25, 20);
+    std::string scriptPath = "assets/scripts/level" + std::to_string(levelNumber) + ".lua";
 
 
-    // start including entites and also compomnenets to them
+    LuaBindings::RegisterAll(scriptManager->GetLuaState(), manager);
 
 
-    player.AddComponent<TransformComponent>(240,106,0,0,32,32,1);
-    player.AddComponent<SpriteComponent>("chopper-image",2,80,true,false);
-    player.AddComponent<KeyboardControlComponent>("up","right", "down", "left", "space");
-    player.AddComponent<ColliderComponent>("PLAYER", 240,106,32,32);
+    if (!scriptManager->LoadScript(scriptPath)) {
+        std::cerr << "[Game] Failed to load level script: " << scriptPath << ". Aborting." << std::endl;
+        isRunning = false;
+        return;
+    }
 
-    Entity& tankEntity(manager.AddEntity("tank",ENEMY_LAYER));
+    sol::state& lua = scriptManager->GetLuaState();
+
+
+    sol::table level = lua["Level1"];
+    if (!level.valid()) {
+        std::cerr << "[Game] 'Level1' table not found after loading " << scriptPath << std::endl;
+        isRunning = false;
+        return;
+    }
+    std::cout << "[Game] Level1 table loaded successfully from " << scriptPath << std::endl;
+
+    // -------------------------------------------------------
+    // Load assets defined in Level1.assets
+    // -------------------------------------------------------
+    sol::table assetsTable = level["assets"];
+    if (!assetsTable.valid()) {
+        std::cerr << "[Game] Warning: Level1.assets table missing" << std::endl;
+    } else {
+        assetsTable.for_each([&](sol::object /*key*/, sol::object val) {
+            if (val.get_type() != sol::type::table) return;
+            sol::table asset  = val.as<sol::table>();
+            std::string type  = asset.get_or<std::string>("type",  "");
+            std::string id    = asset.get_or<std::string>("id",    "");
+            std::string file  = asset.get_or<std::string>("file",  "");
+            if (id.empty() || file.empty()) return;
+            if (type == "texture") {
+                assetManager->AddTexture(id, file.c_str());
+                std::cout << "[Lua] texture loaded: " << id << std::endl;
+            } else if (type == "font") {
+                int fontSize = asset.get_or("fontSize", 14);
+                assetManager->AddFont(id, file.c_str(), fontSize);
+                std::cout << "[Lua] font loaded: " << id << std::endl;
+            }
+        });
+    }
+
+    // -------------------------------------------------------
+    // Configure and load the map from Level1.map
+    // -------------------------------------------------------
+    sol::table mapConfig = level["map"];
+    if (!mapConfig.valid()) {
+        std::cerr << "[Game] Warning: Level1.map table missing" << std::endl;
+    } else {
+        std::string texId   = mapConfig.get_or<std::string>("textureAssetId", "");
+        std::string mapFile = mapConfig.get_or<std::string>("file",           "");
+        int scale    = mapConfig.get_or("scale",    1);
+        int tileSize = mapConfig.get_or("tileSize", 32);
+        int sizeX    = mapConfig.get_or("mapSizeX", 25);
+        int sizeY    = mapConfig.get_or("mapSizeY", 20);
+        std::cout << "[Game] Loading map: " << mapFile
+                  << " texture=" << texId
+                  << " scale=" << scale
+                  << " tileSize=" << tileSize << std::endl;
+        map = new Map(texId, scale, tileSize);
+        map->LoadMap(mapFile, sizeX, sizeY);
+    }
+
+    // -------------------------------------------------------
+    // Create entities (asset IDs match what Level1.assets defines)
+    // -------------------------------------------------------
+    player = &manager.AddEntity("chopper", PLAYER_LAYER);
+    player->AddComponent<TransformComponent>(240, 106, 0, 0, 32, 32, 1);
+    player->AddComponent<SpriteComponent>("chopper-texture", 2, 90, true, false);
+    player->AddComponent<KeyboardControlComponent>("up", "right", "down", "left", "space");
+    player->AddComponent<ColliderComponent>("PLAYER", 240, 106, 32, 32);
+
+    Entity& tankEntity = manager.AddEntity("tank", ENEMY_LAYER);
     tankEntity.AddComponent<TransformComponent>(150, 495, 5, 0, 32, 32, 1);
-    tankEntity.AddComponent<SpriteComponent>("tank-image");
-    tankEntity.AddComponent<ColliderComponent>("ENEMY",150,495,32,32);
+    tankEntity.AddComponent<SpriteComponent>("tank-big-right-texture");
+    tankEntity.AddComponent<ColliderComponent>("ENEMY", 150, 495, 32, 32);
+    tankEntity.AddComponent<ScriptComponent>("assets/scripts/enemy_patrol.lua");
 
-    Entity& projectile(manager.AddEntity("projectile", PROJECTILE_LAYER));
-    projectile.AddComponent<TransformComponent>(150 + 16 , 495 + 16, 0,0,4,4,1 );
-    projectile.AddComponent<SpriteComponent>("projectile-image");
-    projectile.AddComponent<ColliderComponent>("PROJECTILE",150+16,45 + 16 ,4,4);
-    projectile.AddComponent<ProjectileEmitterComponent>(50,270,200,true); // speed , angle , rangle , intervals
+    Entity& projectile = manager.AddEntity("projectile", PROJECTILE_LAYER);
+    projectile.AddComponent<TransformComponent>(150 + 16, 495 + 16, 0, 0, 4, 4, 1);
+    projectile.AddComponent<SpriteComponent>("projectile-texture");
+    projectile.AddComponent<ColliderComponent>("PROJECTILE", 150 + 16, 495 + 16, 4, 4);
+    projectile.AddComponent<ProjectileEmitterComponent>(50, 270, 200, true);
 
-    Entity& heliport(manager.AddEntity("Heliport", OBSTACLE_LAYER));
+    Entity& heliport = manager.AddEntity("Heliport", OBSTACLE_LAYER);
     heliport.AddComponent<TransformComponent>(470, 420, 0, 0, 32, 32, 1);
-    heliport.AddComponent<SpriteComponent>("heliport-image");
+    heliport.AddComponent<SpriteComponent>("heliport-texture");
     heliport.AddComponent<ColliderComponent>("LEVEL_COMPLETE", 470, 420, 32, 32);
 
+    Entity& radarEntity = manager.AddEntity("radar", GUI_LAYER);
+    radarEntity.AddComponent<TransformComponent>(720, 0, 0, 0, 64, 64, 1);
+    radarEntity.AddComponent<SpriteComponent>("radar-texture", 8, 150, false, true);
 
-    Entity& radarEntity(manager.AddEntity("radar",GUI_LAYER));
-    radarEntity.AddComponent<TransformComponent>(720,0,0,0,64,64,1);
-    radarEntity.AddComponent<SpriteComponent>("radar-image", 8, 150 , false, true);
-
-    Entity& labelLevelName(manager.AddEntity("LabelLevelName", GUI_LAYER));
-    labelLevelName.AddComponent<LabelComponent>(10,10,"First Level...","charriot-font",WHITE_COLOR);
-
-
-
-
+    Entity& labelLevelName = manager.AddEntity("LabelLevelName", GUI_LAYER);
+    labelLevelName.AddComponent<LabelComponent>(10, 10, "First Level...", "charriot-font", WHITE_COLOR);
 }
 
 void Game::ProcessInput(){
@@ -159,6 +216,11 @@ void Game::ProcessInput(){
         case SDL_KEYDOWN: {
             if (event.key.keysym.sym == SDLK_ESCAPE) {
                 isRunning = false;
+            }
+            if (event.key.keysym.sym == SDLK_F5) {
+                fileWatcher->SetEnabled(!fileWatcher->IsEnabled());
+                std::cout << "[Hot Reload] "
+                          << (fileWatcher->IsEnabled() ? "ON" : "OFF") << std::endl;
             }
         }
         default:{
@@ -187,6 +249,8 @@ void Game::Update(){
 
     // sets the new ticks for the current frame which is to be used in the next pass
     ticksOfLastFrame = SDL_GetTicks();
+
+    fileWatcher->Update(deltaTime);
 
     manager.Update(deltaTime);
 
@@ -217,7 +281,8 @@ void Game::Render(){
 
 void Game::HandleCameraMovement(){
 
-    TransformComponent* mainPlayerTransform = player.GetComponent<TransformComponent>();
+    if (!player) return;
+    TransformComponent* mainPlayerTransform = player->GetComponent<TransformComponent>();
     camera.x =  mainPlayerTransform -> position.x - static_cast<int>(WINDOW_WIDTH/2);
     camera.y = mainPlayerTransform -> position.y - static_cast<int>(WINDOW_HEIGHT/2);
 

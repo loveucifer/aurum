@@ -5,6 +5,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include "ScriptManager.h"
+#include "FileWatcher.h"
 
 
 class AssetManager;
@@ -18,6 +20,8 @@ class Game {
     public:
         Game();
         ~Game();
+        static ScriptManager* scriptManager;
+        static FileWatcher*    fileWatcher;
         int ticksOfLastFrame;
         bool IsRunning() const;
         static SDL_Renderer *renderer;

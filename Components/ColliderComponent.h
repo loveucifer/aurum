@@ -3,7 +3,7 @@
 #include "../src/EntityManager.h"
 #include "../src/Game.h"
 #include "TransformComponent.h"
-#
+
 
 class ColliderComponent: public Component {
 

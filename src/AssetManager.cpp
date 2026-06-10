@@ -10,6 +10,10 @@ AssetManager::AssetManager(EntityManager* manager): manager(manager){
 
 }
 
+AssetManager::~AssetManager() {
+    ClearData();
+}
+
 void AssetManager::ClearData(){
     textures.clear();
     fonts.clear();
