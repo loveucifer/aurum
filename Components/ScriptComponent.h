@@ -11,30 +11,25 @@ class ScriptComponent : public Component {
 private:
     std::string scriptPath;
 
-    // Each script gets its own isolated environment so scripts cannot
-    // accidentally read/write each other's globals.
+
     sol::environment          env;
     sol::protected_function   updateFunc;
     sol::protected_function   initFunc;
     bool initialized = false;
 
     // ---------------------------------------------------------------
-    // Core load + execute logic.  Called on first Initialize() and on
-    // every hot-reload triggered by the FileWatcher.
+    // Core load + execute logic.
     // ---------------------------------------------------------------
     void LoadAndExecute() {
         sol::state& lua = Game::scriptManager->GetLuaState();
 
-        // ----- Preserve state before destroying the old environment -----
 
-        // Strategy 2: grab the 'state' table so the script can pick it
-        // up automatically on reload via  state = state or {}
         sol::table persistentState;
         if (initialized && env.valid()) {
             persistentState = env["state"];
         }
 
-        // Strategy 3: explicit on_save callback for fine-grained control
+
         sol::table savedState;
         if (initialized && env.valid()) {
             sol::protected_function saveFunc = env["on_save"];
@@ -44,14 +39,12 @@ private:
             }
         }
 
-        // ----- Create a fresh isolated environment -----
+
         env = sol::environment(lua, sol::create, lua.globals());
         env["self"]      = owner;
         env["is_reload"] = initialized;   // false on first load, true on reload
 
-        // Inject preserved 'state' table before the script executes so
-        //   state = state or {}
-        // picks up the live values instead of re-initializing.
+
         if (persistentState.valid()) {
             env["state"] = persistentState;
         }
@@ -62,18 +55,17 @@ private:
             sol::error err = result;
             std::cerr << "[ScriptComponent] Load error in " << scriptPath
                       << ": " << err.what() << std::endl;
-            // Clear updateFunc so the entity safely stops updating.
-            // The developer can fix the error; the next file-save triggers
-            // another reload and the entity resumes automatically.
+
+
             updateFunc = sol::protected_function{};
             return;
         }
 
-        // ----- Cache function references -----
+
         updateFunc = env["on_update"];
         initFunc   = env["on_init"];
 
-        // ----- on_init -----
+
         if (initFunc.valid()) {
             auto r = initFunc();
             if (!r.valid()) {
@@ -83,7 +75,7 @@ private:
             }
         }
 
-        // ----- on_restore (Strategy 3) -----
+
         if (savedState.valid()) {
             sol::protected_function restoreFunc = env["on_restore"];
             if (restoreFunc.valid()) restoreFunc(savedState);
@@ -93,8 +85,7 @@ private:
                   << ": " << scriptPath << std::endl;
     }
 
-    // Register this script path with the global FileWatcher so edits
-    // automatically trigger Reload().
+
     void RegisterWithFileWatcher() {
         Game::fileWatcher->Watch(scriptPath, [this](const std::string&) {
             this->Reload();
@@ -129,7 +120,7 @@ public:
             sol::error err = result;
             std::cerr << "[ScriptComponent] on_update error in " << scriptPath
                       << ": " << err.what() << std::endl;
-            // Intentionally NOT disabling: a follow-up hot-reload fixes it
+            // Intentionally NOT disabling: a follow-up hot-reload probably fixes it
             // without restarting the game.
         }
     }
