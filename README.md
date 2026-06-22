@@ -6,8 +6,8 @@
 
 ## Preview
 
-![Screenshot 1](./media/git/Screenshot%202026-06-22%20at%2020.11.15.png)
-![Screenshot 2](./media/git/Screenshot%202026-06-22%20at%2020.11.45.png)
+![Screenshot 1](./media/git/preview-1.png)
+![Screenshot 2](./media/git/preview-2.png)
 
 ---
 
