@@ -14,6 +14,7 @@
 ## Features
 
 - **Aurum uses an Entity-Component System (ECS) architecture to keep game objects composable and data-driven**
+- **Editor is available at imgui-stuff branch although its not perfect ( yet )
 
 ---
 
