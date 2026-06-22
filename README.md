@@ -1,14 +1,13 @@
-# Aurum
+<h1 align="center">Aurum</h1>
 
-![aurum banner](./assets/YOUR_BANNER_HERE.png)
-
-a 2D game engine built in **C++** with **SDL2**.
+<p align="center">a 2D game engine built in <strong>C++</strong> with <strong>SDL2</strong>.</p>
 
 ---
 
 ## Preview
 
-![gameplay screenshot](./assets/screnshot.png)
+![Screenshot 1](./media/git/Screenshot%202026-06-22%20at%2020.11.15.png)
+![Screenshot 2](./media/git/Screenshot%202026-06-22%20at%2020.11.45.png)
 
 ---
 
